@@ -1,0 +1,46 @@
+name: Docker Build and Push
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run tests
+      run: |
+        pytest
+
+    - name: Build and push Docker image
+      if: github.event_name != 'pull_request'
+      run: |
+        # Set image name with GitHub username and repo name
+        IMAGE_NAME=${{ secrets.DOCKER_USERNAME }}/instagram-caption-generator
+        
+        
+        docker build -t $IMAGE_NAME:latest .
+        
+        # Log in to Docker Hub
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        
+        # Push the Docker image
+        docker push $IMAGE_NAME:latest
+        
+        # Output the image link
+        echo "Docker image published: https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/instagram-caption-generator"
